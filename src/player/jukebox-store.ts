@@ -204,15 +204,13 @@ export const useJukeboxStore = defineStore('jukebox', {
     },
 
     async setGain(api: API, gain: number) {
-      this.loading = true
       try {
-        await api.jukeboxSetGain(gain)
         this.gain = gain
+        const status = await api.jukeboxSetGain(gain)
+        this.gain = status.gain
       } catch (err) {
         this.error = err as Error
         console.error('Failed to set jukebox gain:', err)
-      } finally {
-        this.loading = false
       }
     },
 

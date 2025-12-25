@@ -120,7 +120,7 @@
                   style="height: 120px;" direction="btt"
                   :min="0" :max="1" :step="0.01" percent
                   :value="jukeboxEnabled ? jukeboxGain : volume"
-                  @input="jukeboxEnabled ? setJukeboxGain : setVolume"
+                  @input="onVolumeChange"
                 />
               </Dropdown>
 
@@ -135,7 +135,7 @@
                 <Slider class="p-3" style="width: 120px;"
                         :min="0" :max="1" :step="0.01" percent
                         :value="jukeboxEnabled ? jukeboxGain : volume"
-                        @input="jukeboxEnabled ? setJukeboxGain : setVolume"
+                        @input="onVolumeChange"
                 />
               </div>
               <div class="d-flex justify-content-between px-3 py-1">
@@ -307,6 +307,13 @@
       },
       setJukeboxGain(gain: any) {
         return this.jukeboxStore.setGain(this.$api, parseFloat(gain))
+      },
+      onVolumeChange(value: any) {
+        if (this.jukeboxEnabled) {
+          return this.setJukeboxGain(value)
+        } else {
+          return this.setVolume(value)
+        }
       },
       toggleReplayGain() {
         return this.playerStore.toggleReplayGain()
