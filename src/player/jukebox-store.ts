@@ -12,6 +12,8 @@ export const useJukeboxStore = defineStore('jukebox', {
     position: 0,
     loading: false,
     error: null as null | Error,
+    statusAge: 0,
+    statusUpdateTime: 0,
   }),
 
   getters: {
@@ -32,7 +34,7 @@ export const useJukeboxStore = defineStore('jukebox', {
 
     progress(): number {
       if (this.currentTrack && this.currentTrack.duration > 0) {
-        return this.position / this.currentTrack.duration
+        return (this.position + this.statusAge / 1000) / this.currentTrack.duration
       }
       return 0
     },
@@ -50,6 +52,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         this.playing = playlist.playing
         this.gain = playlist.gain
         this.position = playlist.position
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to load jukebox playlist:', err)
@@ -65,6 +69,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         this.playing = status.playing
         this.gain = status.gain
         this.position = status.position
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to update jukebox status:', err)
@@ -78,6 +84,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         this.playing = status.playing
         this.currentIndex = status.currentIndex
         this.position = status.position
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to start jukebox:', err)
@@ -92,6 +100,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         const status = await api.jukeboxStop()
         this.playing = status.playing
         this.position = status.position
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to stop jukebox:', err)
@@ -107,6 +117,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         this.currentIndex = status.currentIndex
         this.playing = status.playing
         this.position = status.position
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to skip jukebox track:', err)
@@ -153,6 +165,8 @@ export const useJukeboxStore = defineStore('jukebox', {
         this.currentIndex = -1
         this.playing = false
         this.position = 0
+        this.statusAge = 0
+        this.statusUpdateTime = now()
       } catch (err) {
         this.error = err as Error
         console.error('Failed to clear jukebox:', err)
@@ -218,7 +232,6 @@ export const useJukeboxStore = defineStore('jukebox', {
 
 // Auto-update status periodically when playing
 let statusUpdateInterval: number | null = null
-
 export function setupJukeboxStatusUpdates(jukeboxStore: ReturnType<typeof useJukeboxStore>, api: API) {
   watch(
     () => [jukeboxStore.enabled, jukeboxStore.playing],
@@ -229,11 +242,22 @@ export function setupJukeboxStatusUpdates(jukeboxStore: ReturnType<typeof useJuk
       }
 
       if (enabled && playing) {
+        const animateStatus = () => {
+          jukeboxStore.statusAge = now() - jukeboxStore.statusUpdateTime
+          if (jukeboxStore.playing && jukeboxStore.enabled) {
+            requestAnimationFrame(animateStatus)
+          }
+        }
+        animateStatus()
         statusUpdateInterval = setInterval(() => {
           jukeboxStore.updateStatus(api)
-        }, 5000) // Update every 5 seconds
+        }, 5000)
       }
     },
     { immediate: true }
   )
+}
+
+function now() {
+  return Number(document.timeline.currentTime || Date.now())
 }
