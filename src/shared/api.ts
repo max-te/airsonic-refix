@@ -575,16 +575,7 @@ export class API {
   }
 
   async getJukeboxPlaylist(): Promise<JukeboxPlaylist> {
-    const playlistResponse = await this.fetch('rest/jukeboxControl', { action: 'get' })
-    const playlist = playlistResponse.jukeboxPlaylist || {}
-
-    return {
-      entries: (playlist.entry || []).map(this.normalizeTrack, this),
-      currentIndex: playlist.currentIndex || 0,
-      playing: playlist.playing || false,
-      gain: playlist.gain || 1.0,
-      position: playlist.position || 0,
-    }
+    return this.jukeboxControl('get') as Promise<JukeboxPlaylist>
   }
 
   async getJukeboxStatus(): Promise<JukeboxStatus> {

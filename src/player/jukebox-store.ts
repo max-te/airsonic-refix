@@ -42,7 +42,6 @@ export const useJukeboxStore = defineStore('jukebox', {
 
   actions: {
     async loadPlaylist(api: API) {
-      this.loading = true
       this.error = null
 
       try {
@@ -78,7 +77,7 @@ export const useJukeboxStore = defineStore('jukebox', {
     },
 
     async start(api: API) {
-      this.loading = true
+      this.playing = true
       try {
         const status = await api.jukeboxStart()
         this.playing = status.playing
@@ -95,7 +94,7 @@ export const useJukeboxStore = defineStore('jukebox', {
     },
 
     async stop(api: API) {
-      this.loading = true
+      this.playing = false
       try {
         const status = await api.jukeboxStop()
         this.playing = status.playing
@@ -105,13 +104,13 @@ export const useJukeboxStore = defineStore('jukebox', {
       } catch (err) {
         this.error = err as Error
         console.error('Failed to stop jukebox:', err)
-      } finally {
-        this.loading = false
       }
     },
 
     async skip(api: API, index: number, offset?: number) {
-      this.loading = true
+      this.playing = true
+      this.currentIndex = index
+      this.position = offset || 0
       try {
         const status = await api.jukeboxSkip(index, offset)
         this.currentIndex = status.currentIndex
@@ -122,8 +121,6 @@ export const useJukeboxStore = defineStore('jukebox', {
       } catch (err) {
         this.error = err as Error
         console.error('Failed to skip jukebox track:', err)
-      } finally {
-        this.loading = false
       }
     },
 
@@ -176,16 +173,14 @@ export const useJukeboxStore = defineStore('jukebox', {
     },
 
     async removeTrack(api: API, index: number) {
-      this.loading = true
+      this.playlist.splice(index, 1)
+      if (index < this.currentIndex) this.currentIndex--
       try {
         await api.jukeboxRemove(index)
-        // Reload playlist to get updated order
         await this.loadPlaylist(api)
       } catch (err) {
         this.error = err as Error
         console.error('Failed to remove track from jukebox:', err)
-      } finally {
-        this.loading = false
       }
     },
 
