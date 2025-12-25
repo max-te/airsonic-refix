@@ -112,7 +112,7 @@ export const useJukeboxStore = defineStore('jukebox', {
       this.currentIndex = index
       this.position = offset || 0
       try {
-        const status = await api.jukeboxSkip(index, offset)
+        const status = await api.jukeboxSkip(index, offset && Math.floor(offset))
         this.currentIndex = status.currentIndex
         this.playing = status.playing
         this.position = status.position
