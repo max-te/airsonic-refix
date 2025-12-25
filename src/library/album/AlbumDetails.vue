@@ -115,19 +115,19 @@
     },
     methods: {
       playNow() {
-        return this.playerStore.playNow(this.album!.tracks!)
+        return this.playerStore.playNow(this.album!.tracks!, this.$api)
       },
       shuffleNow() {
-        return this.playerStore.shuffleNow(this.album!.tracks!)
+        return this.playerStore.shuffleNow(this.album!.tracks!, this.$api)
       },
       setNextInQueue() {
         if (this.album) {
-          return this.playerStore.setNextInQueue(this.album.tracks!)
+          return this.playerStore.setNextInQueue(this.album.tracks!, this.$api)
         }
       },
       addToQueue() {
         if (this.album) {
-          return this.playerStore.addToQueue(this.album.tracks!)
+          return this.playerStore.addToQueue(this.album.tracks!, this.$api)
         }
       },
       toggleFavourite() {

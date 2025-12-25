@@ -222,7 +222,7 @@
     },
     computed: {
       isPlaying() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.playing : this.playerStore.isPlaying
+        return this.playerStore.isPlaying
       },
       volume() {
         return this.playerStore.volume
@@ -231,7 +231,7 @@
         return this.playerStore.volume <= 0.0
       },
       jukeboxEnabled() {
-        return this.jukeboxStore.enabled
+        return this.playerStore.jukeboxMode
       },
       jukeboxGain() {
         return this.jukeboxStore.gain
@@ -253,10 +253,10 @@
         return !!track && !!this.favouriteStore.tracks[track.id]
       },
       track() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
+        return this.playerStore.track
       },
       currentTrack() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
+        return this.playerStore.track
       },
       streamTitle() {
         return this.playerStore.streamTitle
@@ -279,28 +279,13 @@
     },
     methods: {
       playPause() {
-        if (this.jukeboxStore.enabled) {
-          return this.jukeboxStore.playing ? this.jukeboxStore.stop(this.$api) : this.jukeboxStore.start(this.$api)
-        }
-        return this.playerStore.playPause()
+        return this.playerStore.playPause(this.$api)
       },
       next() {
-        if (this.jukeboxStore.enabled) {
-          if (this.jukeboxStore.hasNext) {
-            return this.jukeboxStore.skip(this.$api, this.jukeboxStore.currentIndex + 1)
-          }
-          return
-        }
-        return this.playerStore.next()
+        return this.playerStore.next(this.$api)
       },
       previous() {
-        if (this.jukeboxStore.enabled) {
-          if (this.jukeboxStore.hasPrevious) {
-            return this.jukeboxStore.skip(this.$api, this.jukeboxStore.currentIndex - 1)
-          }
-          return
-        }
-        return this.playerStore.previous()
+        return this.playerStore.previous(this.$api)
       },
       setVolume(volume: any) {
         return this.playerStore.setVolume(parseFloat(volume))
@@ -325,14 +310,11 @@
         return this.playerStore.toggleRepeat()
       },
       toggleShuffle() {
-        if (this.jukeboxStore.enabled) {
-          return this.jukeboxStore.shuffle(this.$api)
-        }
         return this.playerStore.toggleShuffle()
       },
       toggleJukebox() {
-        this.jukeboxStore.toggleEnabled()
-        if (this.jukeboxStore.enabled) {
+        this.playerStore.toggleJukeboxMode()
+        if (this.jukeboxEnabled) {
           this.jukeboxStore.loadPlaylist(this.$api)
         }
       },

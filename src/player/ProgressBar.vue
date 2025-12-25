@@ -31,10 +31,10 @@
     },
     computed: {
       progress(): number {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.progress : this.playerStore.progress
+        return this.playerStore.progress
       },
       duration(): number {
-        const track = this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
+        const track = this.playerStore.track
         return track?.duration || 0
       },
     },
@@ -45,13 +45,7 @@
         return `${formatDuration(time)} / ${formatDuration(duration)}`
       },
       seek(value: number) {
-        if (this.jukeboxStore.enabled) {
-          const duration = this.duration
-          const offset = value * duration
-          const currentIndex = this.jukeboxStore.currentIndex
-          return this.jukeboxStore.skip(this.$api, currentIndex, offset)
-        }
-        this.playerStore.seek(value)
+        this.playerStore.seek(value, this.$api)
       },
     }
   })

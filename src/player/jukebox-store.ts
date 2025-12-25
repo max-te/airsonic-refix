@@ -227,23 +227,25 @@ export const useJukeboxStore = defineStore('jukebox', {
 let statusUpdateInterval: number | null = null
 export function setupJukeboxStatusUpdates(jukeboxStore: ReturnType<typeof useJukeboxStore>, api: API) {
   watch(
-    () => [jukeboxStore.enabled, jukeboxStore.playing],
-    ([enabled, playing]) => {
+    () => [jukeboxStore.enabled],
+    ([enabled]) => {
       if (statusUpdateInterval) {
         clearInterval(statusUpdateInterval)
         statusUpdateInterval = null
       }
 
-      if (enabled && playing) {
-        const animateStatus = () => {
-          jukeboxStore.statusAge = now() - jukeboxStore.statusUpdateTime
-          if (jukeboxStore.playing && jukeboxStore.enabled) {
-            requestAnimationFrame(animateStatus)
+      if (enabled) {
+        const animateProgress = () => {
+          if (jukeboxStore.playing) {
+            jukeboxStore.statusAge = now() - jukeboxStore.statusUpdateTime
+          }
+          if (jukeboxStore.enabled) {
+            requestAnimationFrame(animateProgress)
           }
         }
-        animateStatus()
+        animateProgress()
         statusUpdateInterval = setInterval(() => {
-          jukeboxStore.updateStatus(api)
+          jukeboxStore.loadPlaylist(api)
         }, 5000)
       }
     },

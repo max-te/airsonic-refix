@@ -92,17 +92,17 @@
     },
     methods: {
       async playNow() {
-        return this.playerStore.playNow(this.item!.tracks)
+        return this.playerStore.playNow(this.item!.tracks, this.$api)
       },
       async shuffleNow() {
-        return this.playerStore.shuffleNow(this.item!.tracks)
+        return this.playerStore.shuffleNow(this.item!.tracks, this.$api)
       },
       async playTrack(track: Track) {
         if (track.id === this.playingTrackId) {
-          return this.playerStore.playPause()
+          return this.playerStore.playPause(this.$api)
         }
         const index = this.item!.tracks!.findIndex((x: any) => x.id === track.id)
-        return this.playerStore.playTrackList(this.item!.tracks, index)
+        return this.playerStore.playTrackListIndex(index, this.$api)
       },
       openDirectory(id: string) {
         const path = this.path === '' ? id : [this.path, id].join('/')

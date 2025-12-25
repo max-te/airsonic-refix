@@ -96,52 +96,36 @@
     },
     computed: {
       loading() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.loading : this.playerStore.queue === null
+        return this.playerStore.jukeboxMode ? this.jukeboxStore.loading : this.playerStore.queue === null
       },
       isPlaying() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.playing : this.playerStore.isPlaying
+        return this.playerStore.isPlaying
       },
       tracks() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.playlist : this.playerStore.queue
+        return this.playerStore.queue
       },
       queueIndex() {
-        return this.jukeboxStore.enabled ? this.jukeboxStore.currentIndex : this.playerStore.queueIndex
+        return this.playerStore.queueIndex
       },
     },
     methods: {
       play(index: number) {
-        if (this.jukeboxStore.enabled) {
-          if (index === this.queueIndex) {
-            return this.jukeboxStore.playing ? this.jukeboxStore.stop(this.$api) : this.jukeboxStore.start(this.$api)
-          }
-          return this.jukeboxStore.skip(this.$api, index)
-        } else {
-          if (index === this.queueIndex) {
-            return this.playerStore.playPause()
-          }
-          return this.playerStore.playTrackListIndex(index)
+        if (index === this.queueIndex) {
+          return this.playerStore.playPause(this.$api)
         }
+        return this.playerStore.playTrackListIndex(index, this.$api)
       },
       dragstart(id: string, event: any) {
         event.dataTransfer.setData('application/x-track-id', id)
       },
       remove(idx: number) {
-        if (this.jukeboxStore.enabled) {
-          return this.jukeboxStore.removeTrack(this.$api, idx)
-        }
-        return this.playerStore.removeFromQueue(idx)
+        this.playerStore.removeFromQueue(idx, this.$api)
       },
       clear() {
-        if (this.jukeboxStore.enabled) {
-          return this.jukeboxStore.clear(this.$api)
-        }
-        return this.playerStore.clearQueue()
+        this.playerStore.clearQueue(this.$api)
       },
       shuffle() {
-        if (this.jukeboxStore.enabled) {
-          return this.jukeboxStore.shuffle(this.$api)
-        }
-        return this.playerStore.shuffleQueue()
+        this.playerStore.shuffleQueue(this.$api)
       },
     }
   })
