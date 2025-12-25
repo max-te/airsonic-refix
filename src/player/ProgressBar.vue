@@ -17,7 +17,6 @@
   import VueSlider from 'vue-slider-component'
   import { formatDuration } from '@/shared/utils'
   import { usePlayerStore } from '@/player/store'
-  import { useJukeboxStore } from '@/player/jukebox-store'
 
   export default defineComponent({
     components: {
@@ -26,7 +25,6 @@
     setup() {
       return {
         playerStore: usePlayerStore(),
-        jukeboxStore: useJukeboxStore(),
       }
     },
     computed: {

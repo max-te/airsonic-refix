@@ -109,7 +109,7 @@
           return this.playerStore.playPause(this.$api)
         }
         const index = this.playableTracks.findIndex((x: any) => x.id === track.id)
-        return this.playerStore.playTrackListIndex(index, this.$api)
+        return this.playerStore.playTrackList(this.playableTracks, this.$api, index)
       },
       async deletePodcast() {
         this.podcast = null

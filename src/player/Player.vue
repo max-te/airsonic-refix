@@ -207,11 +207,11 @@
                     />
                   </div>
                 </template>
-                <div class="d-flex justify-content-between px-3 py-1" v-if="!jukeboxEnabled">
+                <div v-if="!jukeboxEnabled" class="d-flex justify-content-between px-3 py-1">
                   <span>Repeat</span>
                   <SwitchInput :value="repeatActive" @input="toggleRepeat" />
                 </div>
-                <div class="d-flex justify-content-between px-3 py-1" v-if="!jukeboxEnabled">
+                <div v-if="!jukeboxEnabled" class="d-flex justify-content-between px-3 py-1">
                   <span>Shuffle</span>
                   <SwitchInput :value="shuffleActive" @input="toggleShuffle" />
                 </div>

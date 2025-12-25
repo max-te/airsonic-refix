@@ -102,7 +102,7 @@
           return this.playerStore.playPause(this.$api)
         }
         const index = this.item!.tracks!.findIndex((x: any) => x.id === track.id)
-        return this.playerStore.playTrackListIndex(index, this.$api)
+        return this.playerStore.playTrackList(this.item!.tracks!, this.$api, index)
       },
       openDirectory(id: string) {
         const path = this.path === '' ? id : [this.path, id].join('/')

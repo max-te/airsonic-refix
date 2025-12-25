@@ -72,7 +72,7 @@
     methods: {
       async playNow(id: string) {
         const playlist = await this.$api.getPlaylist(id)
-        return this.playerStore.playNow(playlist.tracks!, this.$api)
+        return this.playerStore.playTrackList(playlist.tracks!, this.$api)
       },
       async playNext(id: string) {
         const playlist = await this.$api.getPlaylist(id)

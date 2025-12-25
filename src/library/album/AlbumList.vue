@@ -61,7 +61,7 @@
     methods: {
       async playNow(id: string) {
         const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.playNow(album.tracks!, this.$api)
+        return this.playerStore.playTrackList(album.tracks!, this.$api)
       },
       async playNext(id: string) {
         const album = await this.$api.getAlbumDetails(id)
