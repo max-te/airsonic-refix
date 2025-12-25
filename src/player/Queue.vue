@@ -3,6 +3,7 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h1 class="mb-0">
         Playing
+        <span v-if="jukeboxEnabled">on Jukebox</span>
       </h1>
       <div>
         <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="shuffle">
@@ -107,6 +108,9 @@
       queueIndex() {
         return this.playerStore.queueIndex
       },
+      jukeboxEnabled() {
+        return this.playerStore.jukeboxMode
+      }
     },
     methods: {
       play(index: number) {
