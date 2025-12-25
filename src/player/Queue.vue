@@ -72,6 +72,7 @@
   import CellTitle from '@/library/track/CellTitle.vue'
   import CellActions from '@/library/track/CellActions.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useJukeboxStore } from '@/player/jukebox-store'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
 
   export default defineComponent({
@@ -89,40 +90,57 @@
     setup() {
       return {
         playerStore: usePlayerStore(),
+        jukeboxStore: useJukeboxStore(),
         savePlaylistModalVisible: ref(false),
       }
     },
     computed: {
       loading() {
-        return this.playerStore.queue === null
+        return this.jukeboxStore.enabled ? this.jukeboxStore.loading : this.playerStore.queue === null
       },
       isPlaying() {
-        return this.playerStore.isPlaying
+        return this.jukeboxStore.enabled ? this.jukeboxStore.playing : this.playerStore.isPlaying
       },
       tracks() {
-        return this.playerStore.queue
+        return this.jukeboxStore.enabled ? this.jukeboxStore.playlist : this.playerStore.queue
       },
       queueIndex() {
-        return this.playerStore.queueIndex
+        return this.jukeboxStore.enabled ? this.jukeboxStore.currentIndex : this.playerStore.queueIndex
       },
     },
     methods: {
       play(index: number) {
-        if (index === this.queueIndex) {
-          return this.playerStore.playPause()
+        if (this.jukeboxStore.enabled) {
+          if (index === this.queueIndex) {
+            return this.jukeboxStore.playing ? this.jukeboxStore.stop(this.$api) : this.jukeboxStore.start(this.$api)
+          }
+          return this.jukeboxStore.skip(this.$api, index)
+        } else {
+          if (index === this.queueIndex) {
+            return this.playerStore.playPause()
+          }
+          return this.playerStore.playTrackListIndex(index)
         }
-        return this.playerStore.playTrackListIndex(index)
       },
       dragstart(id: string, event: any) {
         event.dataTransfer.setData('application/x-track-id', id)
       },
       remove(idx: number) {
+        if (this.jukeboxStore.enabled) {
+          return this.jukeboxStore.removeTrack(this.$api, idx)
+        }
         return this.playerStore.removeFromQueue(idx)
       },
       clear() {
+        if (this.jukeboxStore.enabled) {
+          return this.jukeboxStore.clear(this.$api)
+        }
         return this.playerStore.clearQueue()
       },
       shuffle() {
+        if (this.jukeboxStore.enabled) {
+          return this.jukeboxStore.shuffle(this.$api)
+        }
         return this.playerStore.shuffleQueue()
       },
     }

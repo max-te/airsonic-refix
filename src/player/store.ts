@@ -4,6 +4,7 @@ import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/util
 import { API, Track } from '@/shared/api'
 import { AudioController, ReplayGainMode } from '@/player/audio'
 import { useMainStore } from '@/shared/store'
+import { useJukeboxStore } from '@/player/jukebox-store'
 
 localStorage.removeItem('player.mute')
 localStorage.removeItem('queue')
@@ -58,10 +59,22 @@ export const usePlayerStore = defineStore('player', {
   },
   actions: {
     async playNow(tracks: Track[]) {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.setTracks(this.api, tracks)
+        await jukeboxStore.skip(this.api, 0)
+        return
+      }
       this.setShuffle(false)
       await this.playTrackList(tracks, 0)
     },
     async shuffleNow(tracks: Track[]) {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.setTracks(this.api, tracks)
+        await jukeboxStore.shuffle(this.api)
+        return
+      }
       this.setShuffle(true)
       await this.playTrackList(tracks)
     },
@@ -126,6 +139,12 @@ export const usePlayerStore = defineStore('player', {
       await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
     },
     async clearQueue() {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.clear(this.api)
+        return
+      }
+
       if (!this.queue) {
         return
       }
@@ -139,14 +158,28 @@ export const usePlayerStore = defineStore('player', {
         await audio.changeTrack({ })
       }
     },
-    addToQueue(tracks: Track[]) {
+    async addToQueue(tracks: Track[]) {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.addTracks(this.api, tracks)
+        return
+      }
+
       const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
       if (tracks.length === 1 && tracks[0].id === lastTrack?.id) {
         return
       }
       this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
     },
-    setNextInQueue(tracks: Track[]) {
+    async setNextInQueue(tracks: Track[]) {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        // For jukebox, we add tracks at the current position + 1
+        // This is a simplification - a more complex implementation would be needed
+        await jukeboxStore.addTracks(this.api, tracks)
+        return
+      }
+
       const nextTrack = this.queue && this.queue.length > 0
         ? this.queue[(this.queueIndex + 1) % this.queue.length]
         : null
@@ -155,13 +188,25 @@ export const usePlayerStore = defineStore('player', {
       }
       this.queue?.splice(this.queueIndex + 1, 0, ...this.shuffle ? shuffled(tracks) : tracks)
     },
-    removeFromQueue(index: number) {
+    async removeFromQueue(index: number) {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.removeTrack(this.api, index)
+        return
+      }
+
       this.queue?.splice(index, 1)
       if (index < this.queueIndex) {
         this.queueIndex--
       }
     },
-    shuffleQueue() {
+    async shuffleQueue() {
+      const jukeboxStore = useJukeboxStore()
+      if (jukeboxStore.enabled) {
+        await jukeboxStore.shuffle(this.api)
+        return
+      }
+
       if (this.queue && this.queue.length > 0) {
         this.queue = shuffled(this.queue, this.queueIndex)
         this.queueIndex = 0

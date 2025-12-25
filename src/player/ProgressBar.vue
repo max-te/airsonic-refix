@@ -17,6 +17,7 @@
   import VueSlider from 'vue-slider-component'
   import { formatDuration } from '@/shared/utils'
   import { usePlayerStore } from '@/player/store'
+  import { useJukeboxStore } from '@/player/jukebox-store'
 
   export default defineComponent({
     components: {
@@ -25,20 +26,31 @@
     setup() {
       return {
         playerStore: usePlayerStore(),
+        jukeboxStore: useJukeboxStore(),
       }
     },
     computed: {
       progress(): number {
-        return this.playerStore.progress
+        return this.jukeboxStore.enabled ? this.jukeboxStore.progress : this.playerStore.progress
+      },
+      duration(): number {
+        const track = this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
+        return track?.duration || 0
       },
     },
     methods: {
       formatter(value: number): string {
-        const duration = this.playerStore.duration
+        const duration = this.duration
         const time = value * duration
         return `${formatDuration(time)} / ${formatDuration(duration)}`
       },
       seek(value: number) {
+        if (this.jukeboxStore.enabled) {
+          const duration = this.duration
+          const offset = value * duration
+          const currentIndex = this.jukeboxStore.currentIndex
+          return this.jukeboxStore.skip(this.$api, currentIndex, offset)
+        }
         this.playerStore.seek(value)
       },
     }

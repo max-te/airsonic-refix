@@ -37,6 +37,14 @@
         <!-- Controls--->
         <div class="col-auto p-0">
           <b-button
+            title="Jukebox Mode"
+            variant="transparent"
+            class="d-none d-md-inline-block"
+            :class="{ 'text-primary': jukeboxEnabled } "
+            @click="toggleJukebox">
+            <Icon icon="radio" />
+          </b-button>
+          <b-button
             title="Shuffle"
             variant="transparent"
             class="d-none d-md-inline-block"
@@ -111,7 +119,8 @@
                   class="py-3 px-4"
                   style="height: 120px;" direction="btt"
                   :min="0" :max="1" :step="0.01" percent
-                  :value="volume" @input="setVolume"
+                  :value="jukeboxEnabled ? jukeboxGain : volume"
+                  @input="jukeboxEnabled ? setJukeboxGain : setVolume"
                 />
               </Dropdown>
 
@@ -122,11 +131,16 @@
 
             <OverflowMenu class="d-md-none" variant="transparent" direction="up">
               <div class="d-flex justify-content-between align-items-center px-3 py-1">
-                <span>Volume</span>
+                <span>{{ jukeboxEnabled ? 'Gain' : 'Volume' }}</span>
                 <Slider class="p-3" style="width: 120px;"
                         :min="0" :max="1" :step="0.01" percent
-                        :value="volume" @input="setVolume"
+                        :value="jukeboxEnabled ? jukeboxGain : volume"
+                        @input="jukeboxEnabled ? setJukeboxGain : setVolume"
                 />
+              </div>
+              <div class="d-flex justify-content-between px-3 py-1">
+                <span>Jukebox Mode</span>
+                <SwitchInput :value="jukeboxEnabled" @input="toggleJukebox" />
               </div>
               <template v-if="track && track.isPodcast">
                 <div class="d-flex justify-content-between align-items-center px-3 py-1">
@@ -186,6 +200,7 @@
   import IconReplayGainTrack from '@/shared/components/IconReplayGainTrack.vue'
   import IconReplayGainAlbum from '@/shared/components/IconReplayGainAlbum.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useJukeboxStore } from '@/player/jukebox-store'
   import Dropdown from '@/shared/components/Dropdown.vue'
 
   export default defineComponent({
@@ -202,17 +217,24 @@
         ReplayGainMode,
         favouriteStore: useFavouriteStore(),
         playerStore: usePlayerStore(),
+        jukeboxStore: useJukeboxStore(),
       }
     },
     computed: {
       isPlaying() {
-        return this.playerStore.isPlaying
+        return this.jukeboxStore.enabled ? this.jukeboxStore.playing : this.playerStore.isPlaying
       },
       volume() {
         return this.playerStore.volume
       },
       isMuted() {
         return this.playerStore.volume <= 0.0
+      },
+      jukeboxEnabled() {
+        return this.jukeboxStore.enabled
+      },
+      jukeboxGain() {
+        return this.jukeboxStore.gain
       },
       replayGainMode(): ReplayGainMode {
         return this.playerStore.replayGainMode
@@ -227,10 +249,14 @@
         return this.playerStore.playbackRate
       },
       isFavourite(): boolean {
-        return !!this.track && !!this.favouriteStore.tracks[this.track.id]
+        const track = this.currentTrack
+        return !!track && !!this.favouriteStore.tracks[track.id]
       },
       track() {
-        return this.playerStore.track
+        return this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
+      },
+      currentTrack() {
+        return this.jukeboxStore.enabled ? this.jukeboxStore.currentTrack : this.playerStore.track
       },
       streamTitle() {
         return this.playerStore.streamTitle
@@ -253,16 +279,34 @@
     },
     methods: {
       playPause() {
+        if (this.jukeboxStore.enabled) {
+          return this.jukeboxStore.playing ? this.jukeboxStore.stop(this.$api) : this.jukeboxStore.start(this.$api)
+        }
         return this.playerStore.playPause()
       },
       next() {
+        if (this.jukeboxStore.enabled) {
+          if (this.jukeboxStore.hasNext) {
+            return this.jukeboxStore.skip(this.$api, this.jukeboxStore.currentIndex + 1)
+          }
+          return
+        }
         return this.playerStore.next()
       },
       previous() {
+        if (this.jukeboxStore.enabled) {
+          if (this.jukeboxStore.hasPrevious) {
+            return this.jukeboxStore.skip(this.$api, this.jukeboxStore.currentIndex - 1)
+          }
+          return
+        }
         return this.playerStore.previous()
       },
       setVolume(volume: any) {
         return this.playerStore.setVolume(parseFloat(volume))
+      },
+      setJukeboxGain(gain: any) {
+        return this.jukeboxStore.setGain(this.$api, parseFloat(gain))
       },
       toggleReplayGain() {
         return this.playerStore.toggleReplayGain()
@@ -274,10 +318,22 @@
         return this.playerStore.toggleRepeat()
       },
       toggleShuffle() {
+        if (this.jukeboxStore.enabled) {
+          return this.jukeboxStore.shuffle(this.$api)
+        }
         return this.playerStore.toggleShuffle()
       },
+      toggleJukebox() {
+        this.jukeboxStore.toggleEnabled()
+        if (this.jukeboxStore.enabled) {
+          this.jukeboxStore.loadPlaylist(this.$api)
+        }
+      },
       toggleFavourite() {
-        return this.favouriteStore.toggle('track', this.track!.id)
+        const track = this.currentTrack
+        if (track) {
+          return this.favouriteStore.toggle('track', track.id)
+        }
       },
     }
   })

@@ -13,6 +13,7 @@ import { createApi } from '@/shared'
 import { createPinia, PiniaVuePlugin } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
+import { useJukeboxStore, setupJukeboxStatusUpdates } from './player/jukebox-store'
 
 declare module 'vue/types/vue' {
   interface Vue {
@@ -40,8 +41,10 @@ const pinia = createPinia()
 
 const mainStore = useMainStore(pinia)
 const playerStore = usePlayerStore(pinia)
+const jukeboxStore = useJukeboxStore(pinia)
 
 setupAudio(playerStore, mainStore, api)
+setupJukeboxStatusUpdates(jukeboxStore, api)
 
 watch(
   () => mainStore.isLoggedIn,
