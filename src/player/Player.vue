@@ -57,15 +57,7 @@
           <!-- Controls--->
           <div class="col-auto p-0">
             <b-button
-              title="Jukebox Mode"
-              variant="transparent"
-              class="d-none d-md-inline-block"
-              :class="{ 'text-primary': jukeboxEnabled }"
-              @click="toggleJukebox"
-            >
-              <Icon icon="radio" />
-            </b-button>
-            <b-button
+              v-if="!jukeboxEnabled"
               title="Shuffle"
               variant="transparent"
               class="d-none d-md-inline-block"
@@ -84,6 +76,7 @@
               <Icon icon="skip-end" />
             </b-button>
             <b-button
+              v-if="!jukeboxEnabled"
               title="Repeat"
               variant="transparent"
               class="d-none d-md-inline-block"
@@ -98,7 +91,7 @@
           <div class="col-auto col-md p-0">
             <div class="d-flex flex-nowrap justify-content-end pe-3">
               <div class="m-0 d-none d-md-inline-flex align-items-center">
-                <template v-if="track && track.isPodcast">
+                <template v-if="track && track.isPodcast && !jukeboxEnabled">
                   <Dropdown
                     variant="transparent"
                     align="center"
@@ -133,7 +126,7 @@
                 </b-button>
 
                 <b-button
-                  v-if="track && track.replayGain"
+                  v-if="track && track.replayGain && !jukeboxEnabled"
                   title="ReplayGain"
                   variant="transparent"
                   class="m-0"
@@ -163,8 +156,8 @@
                     :max="1"
                     :step="0.01"
                     percent
-                    :value="jukeboxEnabled ? jukeboxGain : volume"
-                    @input="onVolumeChange"
+                    :value="volume"
+                    @input="setVolume"
                   />
                 </Dropdown>
 
@@ -173,9 +166,18 @@
                 </router-link>
               </div>
 
+              <b-button
+                title="Jukebox Mode"
+                variant="transparent"
+                class="d-none d-md-inline-block"
+                :class="{ 'text-primary': jukeboxEnabled }"
+                @click="toggleJukebox"
+              >
+                <Icon icon="radio" />
+              </b-button>
               <OverflowMenu class="d-md-none" variant="transparent" direction="up">
                 <div class="d-flex justify-content-between align-items-center px-3 py-1">
-                  <span>{{ jukeboxEnabled ? "Gain" : "Volume" }}</span>
+                  <span>{{ "Volume" }}</span>
                   <Slider
                     class="p-3"
                     style="width: 120px"
@@ -183,15 +185,15 @@
                     :max="1"
                     :step="0.01"
                     percent
-                    :value="jukeboxEnabled ? jukeboxGain : volume"
-                    @input="onVolumeChange"
+                    :value="volume"
+                    @input="setVolume"
                   />
                 </div>
                 <div class="d-flex justify-content-between px-3 py-1">
                   <span>Jukebox Mode</span>
                   <SwitchInput :value="jukeboxEnabled" @input="toggleJukebox" />
                 </div>
-                <template v-if="track && track.isPodcast">
+                <template v-if="track && track.isPodcast && !jukeboxEnabled">
                   <div class="d-flex justify-content-between align-items-center px-3 py-1">
                     <span>Speed</span>
                     <Slider
@@ -205,11 +207,11 @@
                     />
                   </div>
                 </template>
-                <div class="d-flex justify-content-between px-3 py-1">
+                <div class="d-flex justify-content-between px-3 py-1" v-if="!jukeboxEnabled">
                   <span>Repeat</span>
                   <SwitchInput :value="repeatActive" @input="toggleRepeat" />
                 </div>
-                <div class="d-flex justify-content-between px-3 py-1">
+                <div class="d-flex justify-content-between px-3 py-1" v-if="!jukeboxEnabled">
                   <span>Shuffle</span>
                   <SwitchInput :value="shuffleActive" @input="toggleShuffle" />
                 </div>
@@ -225,7 +227,7 @@
                 </div>
 
                 <div
-                  v-if="track && track.replayGain"
+                  v-if="track && track.replayGain && !jukeboxEnabled"
                   class="d-flex justify-content-between px-3 py-1"
                 >
                   <span>Replay Gain</span>
@@ -298,9 +300,6 @@
       jukeboxEnabled() {
         return this.playerStore.jukeboxMode
       },
-      jukeboxGain() {
-        return this.jukeboxStore.gain
-      },
       replayGainMode(): ReplayGainMode {
         return this.playerStore.replayGainMode
       },
@@ -353,17 +352,7 @@
         return this.playerStore.previous(this.$api)
       },
       setVolume(volume: any) {
-        return this.playerStore.setVolume(parseFloat(volume))
-      },
-      setJukeboxGain(gain: any) {
-        return this.jukeboxStore.setGain(this.$api, parseFloat(gain))
-      },
-      onVolumeChange(value: any) {
-        if (this.jukeboxEnabled) {
-          return this.setJukeboxGain(value)
-        } else {
-          return this.setVolume(value)
-        }
+        return this.playerStore.setVolume(parseFloat(volume), this.$api)
       },
       toggleReplayGain() {
         return this.playerStore.toggleReplayGain()

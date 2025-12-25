@@ -560,7 +560,7 @@ export class API {
         entries: (playlist.entry || []).map(this.normalizeTrack, this),
         currentIndex: playlist.currentIndex || 0,
         playing: playlist.playing === true,
-        gain: playlist.gain || 1.0,
+        gain: playlist.gain ?? 0.0,
         position: playlist.position || 0,
       }
     } else {
@@ -568,7 +568,7 @@ export class API {
       return {
         currentIndex: status.currentIndex || 0,
         playing: status.playing === true,
-        gain: status.gain || 1.0,
+        gain: status.gain ?? 0.0,
         position: status.position || 0,
       }
     }

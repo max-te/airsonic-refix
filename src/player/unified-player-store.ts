@@ -48,9 +48,10 @@ export const usePlayerStore = defineStore('player', {
       const jukeboxStore = useJukeboxStore()
       return state.jukeboxMode ? jukeboxStore.currentIndex : localStore.queueIndex
     },
-    volume: () => {
+    volume: (state) => {
       const localStore = useLocalPlayerStore()
-      return localStore.volume
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.gain : localStore.volume
     },
     currentTime: (state) => {
       if (state.jukeboxMode) {
@@ -303,9 +304,15 @@ export const usePlayerStore = defineStore('player', {
       const localStore = useLocalPlayerStore()
       localStore.toggleShuffle()
     },
-    setVolume(value: number) {
+    async setVolume(value: number, api: API) {
       const localStore = useLocalPlayerStore()
-      localStore.setVolume(value)
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.setGain(api, value)
+      } else {
+        localStore.setVolume(value)
+      }
     },
     setPlaybackRate(value: number) {
       const localStore = useLocalPlayerStore()
