@@ -306,6 +306,9 @@ export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainS
   audio.onpause = () => {
     playerStore.setPaused()
   }
+  audio.onplay = () => {
+    playerStore.setPlaying()
+  }
   audio.onstreamtitlechange = (value: string | null) => {
     playerStore.streamTitle = value
     if (value && mediaSession?.metadata) {
