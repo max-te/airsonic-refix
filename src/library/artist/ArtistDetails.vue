@@ -170,10 +170,10 @@
         }
       },
       playNow() {
-        return this.playerStore.playNow(this.item.topTracks, this.$api)
+        return this.playerStore.playNow(this.$api, this.item.topTracks)
       },
       shuffleNow() {
-        return this.playerStore.shuffleNow(this.item.topTracks, this.$api)
+        return this.playerStore.shuffleNow(this.$api, this.item.topTracks)
       },
       toggleFavourite() {
         return this.favouriteStore.toggle('artist', this.id)

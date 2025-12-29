@@ -17,7 +17,9 @@ export const usePlayerStore = defineStore('player', {
     trackId: (state) => {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
-      return state.jukeboxMode ? jukeboxStore.currentTrack?.id : localStore.trackId
+      return state.jukeboxMode
+        ? jukeboxStore.currentTrack?.id
+        : localStore.trackId
     },
     progress: (state) => {
       const localStore = useLocalPlayerStore()
@@ -32,7 +34,9 @@ export const usePlayerStore = defineStore('player', {
     hasPrevious: (state) => {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
-      return state.jukeboxMode ? jukeboxStore.hasPrevious : localStore.hasPrevious
+      return state.jukeboxMode
+        ? jukeboxStore.hasPrevious
+        : localStore.hasPrevious
     },
     isPlaying: (state) => {
       const localStore = useLocalPlayerStore()
@@ -47,7 +51,9 @@ export const usePlayerStore = defineStore('player', {
     queueIndex: (state) => {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
-      return state.jukeboxMode ? jukeboxStore.currentIndex : localStore.queueIndex
+      return state.jukeboxMode
+        ? jukeboxStore.currentIndex
+        : localStore.queueIndex
     },
     volume: (state) => {
       const localStore = useLocalPlayerStore()
@@ -109,7 +115,7 @@ export const usePlayerStore = defineStore('player', {
     toggleJukeboxMode() {
       this.setJukeboxMode(!this.jukeboxMode)
     },
-    async playNow(tracks: Track[], api: API) {
+    async playNow(api: API, tracks: Track[]) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -121,7 +127,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.playTrackList(tracks, 0)
       }
     },
-    async shuffleNow(tracks: Track[], api: API) {
+    async shuffleNow(api: API, tracks: Track[]) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -133,7 +139,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.playTrackList(tracks)
       }
     },
-    async playTrackList(tracks: Track[], api: API, index?: number) {
+    async playTrackList(api: API, tracks: Track[], index?: number) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -146,7 +152,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.playTrackList(tracks, index)
       }
     },
-    async playTrackListIndex(index: number, api: API) {
+    async playTrackListIndex(api: API, index: number) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -208,7 +214,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.previous()
       }
     },
-    async seek(value: number, api: API) {
+    async seek(api: API, value: number) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -252,7 +258,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.clearQueue()
       }
     },
-    async addToQueue(tracks: Track[], api: API) {
+    async addToQueue(api: API, tracks: Track[]) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -262,7 +268,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.addToQueue(tracks)
       }
     },
-    async setNextInQueue(tracks: Track[], api: API) {
+    async setNextInQueue(api: API, tracks: Track[]) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -273,7 +279,7 @@ export const usePlayerStore = defineStore('player', {
         await localStore.setNextInQueue(tracks)
       }
     },
-    async removeFromQueue(index: number, api: API) {
+    async removeFromQueue(api: API, index: number) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 
@@ -305,7 +311,7 @@ export const usePlayerStore = defineStore('player', {
       const localStore = useLocalPlayerStore()
       localStore.toggleShuffle()
     },
-    async setVolume(value: number, api: API) {
+    async setVolume(api: API, value: number) {
       const localStore = useLocalPlayerStore()
       const jukeboxStore = useJukeboxStore()
 

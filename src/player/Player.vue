@@ -352,7 +352,7 @@
         return this.playerStore.previous(this.$api)
       },
       setVolume(volume: any) {
-        return this.playerStore.setVolume(parseFloat(volume), this.$api)
+        return this.playerStore.setVolume(this.$api, parseFloat(volume))
       },
       toggleReplayGain() {
         return this.playerStore.toggleReplayGain()

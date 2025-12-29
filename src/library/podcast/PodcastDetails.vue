@@ -96,10 +96,10 @@
     },
     methods: {
       async playNow() {
-        return this.playerStore.playNow(this.playableTracks, this.$api)
+        return this.playerStore.playNow(this.$api, this.playableTracks)
       },
       async shuffleNow() {
-        return this.playerStore.shuffleNow(this.playableTracks, this.$api)
+        return this.playerStore.shuffleNow(this.$api, this.playableTracks)
       },
       async playTrack(track: any) {
         if (track.isUnavailable) {
@@ -109,7 +109,7 @@
           return this.playerStore.playPause(this.$api)
         }
         const index = this.playableTracks.findIndex((x: any) => x.id === track.id)
-        return this.playerStore.playTrackList(this.playableTracks, this.$api, index)
+        return this.playerStore.playTrackList(this.$api, this.playableTracks, index)
       },
       async deletePodcast() {
         this.podcast = null

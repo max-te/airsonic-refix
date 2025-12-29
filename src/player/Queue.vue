@@ -117,13 +117,13 @@
         if (index === this.queueIndex) {
           return this.playerStore.playPause(this.$api)
         }
-        return this.playerStore.playTrackListIndex(index, this.$api)
+        return this.playerStore.playTrackListIndex(this.$api, index)
       },
       dragstart(id: string, event: any) {
         event.dataTransfer.setData('application/x-track-id', id)
       },
       remove(idx: number) {
-        this.playerStore.removeFromQueue(idx, this.$api)
+        this.playerStore.removeFromQueue(this.$api, idx)
       },
       clear() {
         this.playerStore.clearQueue(this.$api)
