@@ -106,12 +106,24 @@
         showEditModal: false,
       }
     },
+    computed: {
+      lastChanged() {
+        return this.playlistStore.playlists?.find(p => p.id === this.id)?.updatedAt || ''
+      }
+    },
     watch: {
       id: {
         immediate: true,
         handler(value: string) {
           this.playlist = null
           this.$api.getPlaylist(value).then(playlist => {
+            this.playlist = playlist
+          })
+        }
+      },
+      lastChanged: {
+        handler() {
+          this.$api.getPlaylist(this.id).then(playlist => {
             this.playlist = playlist
           })
         }
