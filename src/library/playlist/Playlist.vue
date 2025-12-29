@@ -122,9 +122,7 @@
         }
       },
       lastChanged: {
-        immediate: true,
         handler() {
-          this.playlist = null
           this.$api.getPlaylist(this.id).then(playlist => {
             this.playlist = playlist
           })
