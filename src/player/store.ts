@@ -1,379 +1,333 @@
-import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
-import { shuffle, shuffled, trackListEquals, formatArtists } from '@/shared/utils'
 import { API, Track } from '@/shared/api'
-import { AudioController, ReplayGainMode } from '@/player/audio'
-import { useMainStore } from '@/shared/store'
-
-localStorage.removeItem('player.mute')
-localStorage.removeItem('queue')
-localStorage.removeItem('queueIndex')
-
-const storedVolume = parseFloat(localStorage.getItem('player.volume') || '1.0')
-const storedReplayGainMode = parseInt(localStorage.getItem('player.replayGainMode') ?? '0')
-const storedPodcastPlaybackRate = parseFloat(localStorage.getItem('player.podcastPlaybackRate') || '1.0')
-const mediaSession: MediaSession | undefined = navigator.mediaSession
-const audio = new AudioController()
+import { useLocalPlayerStore } from './local-player-store'
+import { useJukeboxStore } from './jukebox-store'
+export { setupAudio, useLocalPlayerStore } from './local-player-store'
 
 export const usePlayerStore = defineStore('player', {
   state: () => ({
-    queue: null as null | Track[],
-    queueIndex: -1,
-    isPlaying: false,
-    duration: 0, // duration of current track in seconds
-    currentTime: 0, // position of current track in seconds
-    streamTitle: null as null | string,
-    replayGainMode: storedReplayGainMode as ReplayGainMode,
-    repeat: localStorage.getItem('player.repeat') !== 'false',
-    shuffle: localStorage.getItem('player.shuffle') === 'true',
-    volume: storedVolume,
-    podcastPlaybackRate: storedPodcastPlaybackRate,
-    scrobbled: false,
+    jukeboxMode: false,
   }),
   getters: {
-    track(): Track | null {
-      if (this.queue && this.queueIndex !== -1) {
-        return this.queue[this.queueIndex]
+    track: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.currentTrack : localStore.track
+    },
+    trackId: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode
+        ? jukeboxStore.currentTrack?.id
+        : localStore.trackId
+    },
+    progress: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.progress : localStore.progress
+    },
+    hasNext: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.hasNext : localStore.hasNext
+    },
+    hasPrevious: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode
+        ? jukeboxStore.hasPrevious
+        : localStore.hasPrevious
+    },
+    isPlaying: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.playing : localStore.isPlaying
+    },
+    queue: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.playlist : localStore.queue
+    },
+    queueIndex: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode
+        ? jukeboxStore.currentIndex
+        : localStore.queueIndex
+    },
+    volume: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      return state.jukeboxMode ? jukeboxStore.gain : localStore.volume
+    },
+    currentTime: (state) => {
+      if (state.jukeboxMode) {
+        const jukeboxStore = useJukeboxStore()
+        return jukeboxStore.position + jukeboxStore.statusAge / 1000
       }
-      return null
+      const localStore = useLocalPlayerStore()
+      return localStore.currentTime
     },
-    trackId(): string | null {
-      return this.track?.id ?? null
-    },
-    progress(): number {
-      if (this.currentTime > -1 && this.duration > 0) {
-        return this.currentTime / this.duration
+    duration: (state) => {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+      if (state.jukeboxMode) {
+        const track = jukeboxStore.currentTrack
+        return track?.duration || 0
       }
-      return 0
+      return localStore.duration
     },
-    hasNext(): boolean {
-      return !!this.queue && (this.queueIndex < this.queue.length - 1)
+    repeat: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.repeat
     },
-    hasPrevious(): boolean {
-      return this.queueIndex > 0
+    shuffle: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.shuffle
     },
-    playbackRate(): number {
-      return this.track?.isPodcast ? this.podcastPlaybackRate : 1.0
+    playbackRate: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.playbackRate
+    },
+    streamTitle: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.streamTitle
+    },
+    replayGainMode: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.replayGainMode
+    },
+    podcastPlaybackRate: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.podcastPlaybackRate
+    },
+    scrobbled: () => {
+      const localStore = useLocalPlayerStore()
+      return localStore.scrobbled
     },
   },
   actions: {
-    async playNow(tracks: Track[]) {
-      this.setShuffle(false)
-      await this.playTrackList(tracks, 0)
+    setJukeboxMode(enabled: boolean) {
+      this.jukeboxMode = enabled
+      const jukeboxStore = useJukeboxStore()
+      jukeboxStore.setEnabled(enabled)
     },
-    async shuffleNow(tracks: Track[]) {
-      this.setShuffle(true)
-      await this.playTrackList(tracks)
+    toggleJukeboxMode() {
+      this.setJukeboxMode(!this.jukeboxMode)
     },
-    async playTrackListIndex(index: number) {
-      this.setQueueIndex(index)
-      this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-    },
-    async playTrackList(tracks: Track[], index?: number) {
-      if (index == null) {
-        index = this.shuffle ? Math.floor(Math.random() * tracks.length) : 0
-      }
-      if (this.shuffle) {
-        tracks = [...tracks]
-        shuffle(tracks, index)
-        index = 0
-      }
-      if (!trackListEquals(this.queue || [], tracks)) {
-        this.setQueue(tracks)
-      }
-      this.setQueueIndex(index)
-      this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-    },
-    async resume() {
-      this.setPlaying()
-      await audio.resume()
-    },
-    async pause() {
-      audio.pause()
-      this.setPaused()
-    },
-    async playPause() {
-      return this.isPlaying ? this.pause() : this.resume()
-    },
-    async next() {
-      this.setQueueIndex(this.queueIndex + 1)
-      this.setPlaying()
-      await audio.changeTrack({ ...this.track, playbackRate: this.playbackRate })
-    },
-    async previous() {
-      this.setQueueIndex(audio.currentTime() > 3 ? this.queueIndex : this.queueIndex - 1)
-      this.setPlaying()
-      await audio.changeTrack(this.track!)
-    },
-    async seek(value: number) {
-      if (isFinite(this.duration)) {
-        await audio.seek(this.duration * value)
-      }
-    },
-    async loadQueue() {
-      const { tracks, currentTrack, currentTrackPosition } = await this.api.getPlayQueue()
-      this.setQueue(tracks)
-      this.setQueueIndex(currentTrack)
-      this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
-      await audio.seek(currentTrackPosition)
-    },
-    async resetQueue() {
-      this.setQueueIndex(0)
-      this.setPaused()
-      await audio.changeTrack({ ...this.track, paused: true, playbackRate: this.playbackRate })
-    },
-    async clearQueue() {
-      if (!this.queue) {
-        return
-      }
-      if (this.queue.length > 1) {
-        this.setQueue([this.queue[this.queueIndex]])
-        this.setQueueIndex(0)
+    async playNow(api: API, tracks: Track[]) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.setTracks(api, tracks)
+        await jukeboxStore.skip(api, 0)
       } else {
-        this.setQueue([])
-        this.setQueueIndex(-1)
-        this.setPaused()
-        await audio.changeTrack({ })
+        localStore.setShuffle(false)
+        await localStore.playTrackList(tracks, 0)
       }
     },
-    addToQueue(tracks: Track[]) {
-      const lastTrack = this.queue && this.queue.length > 0 ? this.queue[this.queue.length - 1] : null
-      if (tracks.length === 1 && tracks[0].id === lastTrack?.id) {
-        return
-      }
-      this.queue?.push(...this.shuffle ? shuffled(tracks) : tracks)
-    },
-    setNextInQueue(tracks: Track[]) {
-      const nextTrack = this.queue && this.queue.length > 0
-        ? this.queue[(this.queueIndex + 1) % this.queue.length]
-        : null
-      if (tracks.length === 1 && tracks[0].id === nextTrack?.id) {
-        return
-      }
-      this.queue?.splice(this.queueIndex + 1, 0, ...this.shuffle ? shuffled(tracks) : tracks)
-    },
-    removeFromQueue(index: number) {
-      this.queue?.splice(index, 1)
-      if (index < this.queueIndex) {
-        this.queueIndex--
+    async shuffleNow(api: API, tracks: Track[]) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.setTracks(api, tracks)
+        await jukeboxStore.shuffle(api)
+      } else {
+        localStore.setShuffle(true)
+        await localStore.playTrackList(tracks)
       }
     },
-    shuffleQueue() {
-      if (this.queue && this.queue.length > 0) {
-        this.queue = shuffled(this.queue, this.queueIndex)
-        this.queueIndex = 0
+    async playTrackList(api: API, tracks: Track[], index?: number) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.setTracks(api, tracks)
+        if (index !== undefined) {
+          await jukeboxStore.skip(api, index)
+        }
+      } else {
+        await localStore.playTrackList(tracks, index)
+      }
+    },
+    async playTrackListIndex(api: API, index: number) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.skip(api, index)
+      } else {
+        await localStore.playTrackListIndex(index, api)
+      }
+    },
+    async resume(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.start(api)
+      } else {
+        await localStore.resume()
+      }
+    },
+    async pause(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.stop(api)
+      } else {
+        await localStore.pause()
+      }
+    },
+    async playPause(api: API) {
+      return this.isPlaying ? this.pause(api) : this.resume(api)
+    },
+    async next(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        const currentIndex = jukeboxStore.currentIndex
+        if (jukeboxStore.hasNext) {
+          await jukeboxStore.skip(api, currentIndex + 1)
+        }
+      } else {
+        await localStore.next()
+      }
+    },
+    async previous(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        const currentTime = jukeboxStore.position
+        const currentIndex = jukeboxStore.currentIndex
+        if (currentTime > 3 && jukeboxStore.hasPrevious) {
+          await jukeboxStore.skip(api, currentIndex)
+        } else if (jukeboxStore.hasPrevious) {
+          await jukeboxStore.skip(api, currentIndex - 1)
+        }
+      } else {
+        await localStore.previous()
+      }
+    },
+    async seek(api: API, value: number) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        const duration = this.duration
+        if (isFinite(duration) && duration > 0) {
+          const position = duration * value
+          await jukeboxStore.skip(api, jukeboxStore.currentIndex, position)
+        }
+      } else {
+        await localStore.seek(value)
+      }
+    },
+    async loadQueue(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.loadPlaylist(api)
+      } else {
+        await localStore.loadQueue(api)
+      }
+    },
+    async resetQueue(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.skip(api, 0, 0)
+      } else {
+        await localStore.resetQueue()
+      }
+    },
+    async clearQueue(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.clear(api)
+      } else {
+        await localStore.clearQueue()
+      }
+    },
+    async addToQueue(api: API, tracks: Track[]) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.addTracks(api, tracks)
+      } else {
+        await localStore.addToQueue(tracks)
+      }
+    },
+    async setNextInQueue(api: API, tracks: Track[]) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        // For jukebox, we add tracks at the current position + 1
+        await jukeboxStore.addTracks(api, tracks)
+      } else {
+        await localStore.setNextInQueue(tracks)
+      }
+    },
+    async removeFromQueue(api: API, index: number) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.removeTrack(api, index)
+      } else {
+        await localStore.removeFromQueue(index)
+      }
+    },
+    async shuffleQueue(api: API) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.shuffle(api)
+      } else {
+        await localStore.shuffleQueue()
       }
     },
     toggleReplayGain() {
-      const mode = (this.replayGainMode + 1) % ReplayGainMode._Length
-      audio.setReplayGainMode(mode)
-      this.replayGainMode = mode
-      localStorage.setItem('player.replayGainMode', `${mode}`)
+      const localStore = useLocalPlayerStore()
+      localStore.toggleReplayGain()
     },
     toggleRepeat() {
-      this.repeat = !this.repeat
-      localStorage.setItem('player.repeat', String(this.repeat))
+      const localStore = useLocalPlayerStore()
+      localStore.toggleRepeat()
     },
     toggleShuffle() {
-      this.setShuffle(!this.shuffle)
+      const localStore = useLocalPlayerStore()
+      localStore.toggleShuffle()
     },
-    setVolume(value: number) {
-      audio.setVolume(value)
-      this.volume = value
-      localStorage.setItem('player.volume', String(value))
+    async setVolume(api: API, value: number) {
+      const localStore = useLocalPlayerStore()
+      const jukeboxStore = useJukeboxStore()
+
+      if (this.jukeboxMode) {
+        await jukeboxStore.setGain(api, value)
+      } else {
+        localStore.setVolume(value)
+      }
     },
     setPlaybackRate(value: number) {
-      this.podcastPlaybackRate = value
-      localStorage.setItem('player.podcastPlaybackRate', String(value))
-      if (this.track?.isPodcast) {
-        audio.setPlaybackRate(value)
-      }
+      const localStore = useLocalPlayerStore()
+      localStore.setPlaybackRate(value)
     },
     setShuffle(enable: boolean) {
-      this.shuffle = enable
-      localStorage.setItem('player.shuffle', String(enable))
-    },
-    setPlaying() {
-      this.isPlaying = true
-      if (mediaSession) {
-        mediaSession.playbackState = 'playing'
-      }
-    },
-    setPaused() {
-      this.isPlaying = false
-      if (mediaSession) {
-        mediaSession.playbackState = 'paused'
-      }
-    },
-    setQueue(queue: Track[]) {
-      this.queue = queue
-      this.queueIndex = -1
-    },
-    setQueueIndex(index: number) {
-      if (!this.queue || this.queue.length === 0) {
-        this.queueIndex = -1
-        this.duration = 0
-        if (mediaSession) {
-          mediaSession.metadata = null
-          mediaSession.playbackState = 'none'
-        }
-        return
-      }
-      index = Math.max(0, index)
-      index = index < this.queue.length ? index : 0
-      this.queueIndex = index
-      this.scrobbled = false
-      const track = this.queue[index]
-      this.duration = track.duration
-      const next = (index + 1) % this.queue.length
-      audio.setBuffer(this.queue[next].url!)
-      if (mediaSession) {
-        mediaSession.metadata = new MediaMetadata({
-          title: track.title,
-          artist: formatArtists(track.artists),
-          album: track.album,
-          artwork: track.image ? [{ src: track.image, sizes: '300x300' }] : undefined,
-        })
-      }
+      const localStore = useLocalPlayerStore()
+      localStore.setShuffle(enable)
     },
   },
 })
-
-export function setupAudio(playerStore: ReturnType<typeof usePlayerStore>, mainStore: ReturnType<typeof useMainStore>, api: API) {
-  audio.ontimeupdate = (value: number) => {
-    playerStore.currentTime = value
-  }
-  audio.ondurationchange = (value: number) => {
-    if (isFinite(value)) {
-      playerStore.duration = value
-    }
-  }
-  audio.onended = () => {
-    if (playerStore.hasNext || playerStore.repeat) {
-      return playerStore.next()
-    } else {
-      return playerStore.resetQueue()
-    }
-  }
-  audio.onpause = () => {
-    playerStore.setPaused()
-  }
-  audio.onstreamtitlechange = (value: string | null) => {
-    playerStore.streamTitle = value
-    if (value && mediaSession?.metadata) {
-      mediaSession.metadata.title = value
-    }
-  }
-  audio.onerror = (error: any) => {
-    playerStore.setPaused()
-    mainStore.setError(error)
-  }
-
-  audio.setReplayGainMode(storedReplayGainMode)
-  audio.setVolume(storedVolume)
-
-  const track = playerStore.track
-  if (track?.url) {
-    audio.changeTrack({ ...track, paused: true })
-  }
-  audio.setPlaybackRate(playerStore.playbackRate)
-
-  if (mediaSession) {
-    mediaSession.setActionHandler('play', () => {
-      playerStore.resume()
-    })
-    mediaSession.setActionHandler('pause', () => {
-      playerStore.pause()
-    })
-    mediaSession.setActionHandler('nexttrack', () => {
-      playerStore.next()
-    })
-    mediaSession.setActionHandler('previoustrack', () => {
-      playerStore.previous()
-    })
-    mediaSession.setActionHandler('stop', () => {
-      playerStore.pause()
-    })
-    mediaSession.setActionHandler('seekto', (details) => {
-      if (details.seekTime) {
-        audio.seek(details.seekTime)
-      }
-    })
-    mediaSession.setActionHandler('seekforward', (details) => {
-      const offset = details.seekOffset || 10
-      audio.seek(Math.min(audio.currentTime() + offset, audio.duration()))
-    })
-    mediaSession.setActionHandler('seekbackward', (details) => {
-      const offset = details.seekOffset || 10
-      audio.seek(Math.max(audio.currentTime() - offset, 0))
-    })
-    // FIXME
-    // function updatePositionState() {
-    //   if (mediaSession && mediaSession.setPositionState) {
-    //     mediaSession.setPositionState({
-    //       duration: audio.duration || 0,
-    //       playbackRate: audio.playbackRate,
-    //       position: audio.currentTime,
-    //     });
-    //   }
-    // }
-
-    // Update now playing
-    watch(
-      () => playerStore.trackId,
-      () => {
-        const track = playerStore.track
-        if (track && !track.isStream) {
-          return api.updateNowPlaying(track.id)
-        }
-      })
-
-    // Scrobble
-    watch(
-      () => playerStore.currentTime,
-      () => {
-        if (
-          playerStore.track &&
-          playerStore.scrobbled === false &&
-          playerStore.duration > 30 &&
-          playerStore.currentTime / playerStore.duration > 0.7
-        ) {
-          const { id, isStream } = playerStore.track
-          if (!isStream) {
-            playerStore.scrobbled = true
-            return api.scrobble(id)
-          }
-        }
-      })
-
-    // Save play queue
-    const maxDuration = 10_000
-    const lastSaved = ref(Date.now())
-
-    watch(
-      () => [
-        playerStore.queue,
-        playerStore.queueIndex,
-      ],
-      (_: any, [oldQueue]) => {
-        if (oldQueue !== null) {
-          lastSaved.value = Date.now()
-          return api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-        }
-      })
-
-    watch(
-      () => [playerStore.currentTime],
-      () => {
-        const now = Date.now()
-        const duration = now - lastSaved.value
-        if (duration >= maxDuration) {
-          lastSaved.value = now
-          return api.savePlayQueue(playerStore.queue!, playerStore.track, playerStore.currentTime)
-        }
-      })
-  }
-}

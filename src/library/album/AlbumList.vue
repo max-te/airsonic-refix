@@ -61,15 +61,15 @@
     methods: {
       async playNow(id: string) {
         const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.playTrackList(album.tracks!)
+        return this.playerStore.playTrackList(this.$api, album.tracks!)
       },
       async playNext(id: string) {
         const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.setNextInQueue(album.tracks!)
+        return this.playerStore.setNextInQueue(this.$api, album.tracks!)
       },
       async playLater(id: string) {
         const album = await this.$api.getAlbumDetails(id)
-        return this.playerStore.addToQueue(album.tracks!)
+        return this.playerStore.addToQueue(this.$api, album.tracks!)
       },
       toggleFavourite(id: string) {
         return this.favouriteStore.toggle('album', id)

@@ -3,6 +3,7 @@
     <div class="d-flex justify-content-between align-items-center mb-2">
       <h1 class="mb-0">
         Playing
+        <span v-if="jukeboxEnabled">on Jukebox</span>
       </h1>
       <div>
         <b-button variant="transparent" class="me-2" :disabled="!tracks?.length" @click="shuffle">
@@ -72,6 +73,7 @@
   import CellTitle from '@/library/track/CellTitle.vue'
   import CellActions from '@/library/track/CellActions.vue'
   import { usePlayerStore } from '@/player/store'
+  import { useJukeboxStore } from '@/player/jukebox-store'
   import CreatePlaylistModal from '@/library/playlist/CreatePlaylistModal.vue'
 
   export default defineComponent({
@@ -89,12 +91,13 @@
     setup() {
       return {
         playerStore: usePlayerStore(),
+        jukeboxStore: useJukeboxStore(),
         savePlaylistModalVisible: ref(false),
       }
     },
     computed: {
       loading() {
-        return this.playerStore.queue === null
+        return this.playerStore.jukeboxMode ? this.jukeboxStore.loading : this.playerStore.queue === null
       },
       isPlaying() {
         return this.playerStore.isPlaying
@@ -105,25 +108,28 @@
       queueIndex() {
         return this.playerStore.queueIndex
       },
+      jukeboxEnabled() {
+        return this.playerStore.jukeboxMode
+      }
     },
     methods: {
       play(index: number) {
         if (index === this.queueIndex) {
-          return this.playerStore.playPause()
+          return this.playerStore.playPause(this.$api)
         }
-        return this.playerStore.playTrackListIndex(index)
+        return this.playerStore.playTrackListIndex(this.$api, index)
       },
       dragstart(id: string, event: any) {
         event.dataTransfer.setData('application/x-track-id', id)
       },
       remove(idx: number) {
-        return this.playerStore.removeFromQueue(idx)
+        this.playerStore.removeFromQueue(this.$api, idx)
       },
       clear() {
-        return this.playerStore.clearQueue()
+        this.playerStore.clearQueue(this.$api)
       },
       shuffle() {
-        return this.playerStore.shuffleQueue()
+        this.playerStore.shuffleQueue(this.$api)
       },
     }
   })

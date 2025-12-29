@@ -31,15 +31,19 @@
       progress(): number {
         return this.playerStore.progress
       },
+      duration(): number {
+        const track = this.playerStore.track
+        return track?.duration || 0
+      },
     },
     methods: {
       formatter(value: number): string {
-        const duration = this.playerStore.duration
+        const duration = this.duration
         const time = value * duration
         return `${formatDuration(time)} / ${formatDuration(duration)}`
       },
       seek(value: number) {
-        this.playerStore.seek(value)
+        this.playerStore.seek(this.$api, value)
       },
     }
   })

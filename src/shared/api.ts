@@ -4,7 +4,7 @@ import { toQueryString } from '@/shared/utils'
 
 export type AlbumSort =
   'a-z' |
-  'recently-added'|
+  'recently-added' |
   'recently-played' |
   'most-played' |
   'random'
@@ -19,7 +19,7 @@ export interface Track {
   track?: number
   album?: string
   albumId?: string
-  artists: {name: string, id: string}[]
+  artists: { name: string, id: string }[]
   isStream?: boolean
   isPodcast?: boolean
   isUnavailable?: boolean
@@ -40,7 +40,7 @@ export interface Album {
   id: string
   name: string
   description?: string
-  artists: {name: string, id: string}[]
+  artists: { name: string, id: string }[]
   year: number
   favourite: boolean
   genres: Genre[]
@@ -116,6 +116,34 @@ export interface PlayQueue {
   currentTrackPosition: number
 }
 
+export interface JukeboxStatus {
+  currentIndex: number
+  playing: boolean
+  gain: number
+  position: number
+}
+
+export interface JukeboxPlaylist {
+  entries: Track[]
+  currentIndex: number
+  playing: boolean
+  gain: number
+  position: number
+}
+
+export type JukeboxAction =
+  | 'get'
+  | 'status'
+  | 'set'
+  | 'start'
+  | 'stop'
+  | 'skip'
+  | 'add'
+  | 'clear'
+  | 'remove'
+  | 'shuffle'
+  | 'setGain'
+
 export class UnsupportedOperationError extends Error { }
 
 export class SubsonicError extends Error {
@@ -185,7 +213,7 @@ export class API {
         albumCount: item.albumCount ?? 0,
         trackCount: item.songCount ?? 0,
       }))
-      .sort((a: any, b:any) => b.albumCount - a.albumCount)
+      .sort((a: any, b: any) => b.albumCount - a.albumCount)
   }
 
   async getAlbumsByGenre(id: string, size: number, offset = 0) {
@@ -521,6 +549,75 @@ export class API {
     return response.scanStatus.scanning
   }
 
+  // Jukebox control methods
+  async jukeboxControl(action: JukeboxAction, params?: any): Promise<JukeboxStatus | JukeboxPlaylist> {
+    const requestParams = { action, ...params }
+    const response = await this.fetch('rest/jukeboxControl', requestParams)
+
+    if (action === 'get') {
+      const playlist = response.jukeboxPlaylist || {}
+      return {
+        entries: (playlist.entry || []).map(this.normalizeTrack, this),
+        currentIndex: playlist.currentIndex || 0,
+        playing: playlist.playing === true,
+        gain: playlist.gain ?? 0.0,
+        position: playlist.position || 0,
+      }
+    } else {
+      const status = response.jukeboxStatus || {}
+      return {
+        currentIndex: status.currentIndex || 0,
+        playing: status.playing === true,
+        gain: status.gain ?? 0.0,
+        position: status.position || 0,
+      }
+    }
+  }
+
+  async getJukeboxPlaylist(): Promise<JukeboxPlaylist> {
+    return this.jukeboxControl('get') as Promise<JukeboxPlaylist>
+  }
+
+  async getJukeboxStatus(): Promise<JukeboxStatus> {
+    return this.jukeboxControl('status') as Promise<JukeboxStatus>
+  }
+
+  async jukeboxStart(): Promise<JukeboxStatus> {
+    return this.jukeboxControl('start') as Promise<JukeboxStatus>
+  }
+
+  async jukeboxStop(): Promise<JukeboxStatus> {
+    return this.jukeboxControl('stop') as Promise<JukeboxStatus>
+  }
+
+  async jukeboxSkip(index: number, offset?: number): Promise<JukeboxStatus> {
+    return this.jukeboxControl('skip', { index, offset }) as Promise<JukeboxStatus>
+  }
+
+  async jukeboxAdd(trackIds: string[]): Promise<JukeboxStatus> {
+    return this.jukeboxControl('add', { id: trackIds }) as Promise<JukeboxStatus>
+  }
+
+  async jukeboxSet(trackIds: string[]): Promise<JukeboxStatus> {
+    return this.jukeboxControl('set', { id: trackIds }) as Promise<JukeboxStatus>
+  }
+
+  async jukeboxClear(): Promise<JukeboxStatus> {
+    return this.jukeboxControl('clear') as Promise<JukeboxStatus>
+  }
+
+  async jukeboxRemove(index: number): Promise<JukeboxStatus> {
+    return this.jukeboxControl('remove', { index }) as Promise<JukeboxStatus>
+  }
+
+  async jukeboxShuffle(): Promise<JukeboxStatus> {
+    return this.jukeboxControl('shuffle') as Promise<JukeboxStatus>
+  }
+
+  async jukeboxSetGain(gain: number): Promise<JukeboxStatus> {
+    return this.jukeboxControl('setGain', { gain }) as Promise<JukeboxStatus>
+  }
+
   async scrobble(id: string): Promise<void> {
     return this.fetch('rest/scrobble', { id, submission: true })
   }
@@ -548,9 +645,9 @@ export class API {
   private normalizeTrack(item: any): Track {
     const replayGain =
       Number.isFinite(item.replayGain?.trackGain) &&
-      Number.isFinite(item.replayGain?.albumGain) &&
-      item.replayGain?.trackPeak > 0 &&
-      item.replayGain?.albumPeak > 0
+        Number.isFinite(item.replayGain?.albumGain) &&
+        item.replayGain?.trackPeak > 0 &&
+        item.replayGain?.albumPeak > 0
         ? item.replayGain
         : null
 

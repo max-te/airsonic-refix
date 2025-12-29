@@ -74,10 +74,10 @@
         window.location.href = this.$api.getDownloadUrl(this.track.id)
       },
       setNextInQueue() {
-        return this.playerStore.setNextInQueue([this.track as Track])
+        return this.playerStore.setNextInQueue(this.$api, [this.track as Track])
       },
       addToQueue() {
-        return this.playerStore.addToQueue([this.track as Track])
+        return this.playerStore.addToQueue(this.$api, [this.track as Track])
       },
       addToPlaylist(playlistId: string) {
         this.showPlaylistSelect = false

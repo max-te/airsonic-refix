@@ -96,20 +96,20 @@
     },
     methods: {
       async playNow() {
-        return this.playerStore.playNow(this.playableTracks)
+        return this.playerStore.playNow(this.$api, this.playableTracks)
       },
       async shuffleNow() {
-        return this.playerStore.shuffleNow(this.playableTracks)
+        return this.playerStore.shuffleNow(this.$api, this.playableTracks)
       },
       async playTrack(track: any) {
         if (track.isUnavailable) {
           return
         }
         if (track.id === this.playingTrackId) {
-          return this.playerStore.playPause()
+          return this.playerStore.playPause(this.$api)
         }
         const index = this.playableTracks.findIndex((x: any) => x.id === track.id)
-        return this.playerStore.playTrackList(this.playableTracks, index)
+        return this.playerStore.playTrackList(this.$api, this.playableTracks, index)
       },
       async deletePodcast() {
         this.podcast = null

@@ -8,11 +8,12 @@ import { setupRouter } from '@/shared/router'
 import { useMainStore } from '@/shared/store'
 import { API } from '@/shared/api'
 import { createAuth } from '@/auth/service'
-import { setupAudio, usePlayerStore } from './player/store'
+import { setupAudio, usePlayerStore, useLocalPlayerStore } from './player/store'
 import { createApi } from '@/shared'
 import { createPinia, PiniaVuePlugin } from 'pinia'
 import { useFavouriteStore } from '@/library/favourite/store'
 import { usePlaylistStore } from '@/library/playlist/store'
+import { useJukeboxStore, setupJukeboxStatusUpdates } from './player/jukebox-store'
 
 declare module 'vue/types/vue' {
   interface Vue {
@@ -40,8 +41,11 @@ const pinia = createPinia()
 
 const mainStore = useMainStore(pinia)
 const playerStore = usePlayerStore(pinia)
+const localPlayerStore = useLocalPlayerStore(pinia)
+const jukeboxStore = useJukeboxStore(pinia)
 
-setupAudio(playerStore, mainStore, api)
+setupAudio(localPlayerStore, mainStore, api)
+setupJukeboxStatusUpdates(jukeboxStore, api)
 
 watch(
   () => mainStore.isLoggedIn,
@@ -50,7 +54,7 @@ watch(
       return Promise.all([
         useFavouriteStore().load(),
         usePlaylistStore().load(),
-        playerStore.loadQueue(),
+        playerStore.loadQueue(api),
       ])
     }
   })

@@ -77,9 +77,9 @@
     methods: {
       play(index: number) {
         if (this.tracks[index].id === this.playingTrackId) {
-          return this.playerStore.playPause()
+          return this.playerStore.playPause(this.$api)
         }
-        return this.playerStore.playTrackList(this.tracks, index)
+        return this.playerStore.playTrackList(this.$api, this.tracks, index)
       },
       dragstart(item: any, event: any) {
         if (!item.isStream) {

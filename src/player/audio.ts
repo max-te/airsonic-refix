@@ -28,6 +28,7 @@ export class AudioController {
   ontimeupdate: (value: number) => void = () => { /* do nothing */ }
   ondurationchange: (value: number) => void = () => { /* do nothing */ }
   onpause: () => void = () => { /* do nothing */ }
+  onplay: () => void = () => { /* do nothing */ }
   onstreamtitlechange: (value: string | null) => void = () => { /* do nothing */ }
   onended: () => void = () => { /* do nothing */ }
   onerror: (err: MediaError | null) => void = () => { /* do nothing */ }
@@ -106,6 +107,9 @@ export class AudioController {
     }
     this.pipeline.audio.onpause = () => {
       this.onpause()
+    }
+    this.pipeline.audio.onplaying = () => {
+      this.onplay()
     }
     this.ondurationchange(this.pipeline.audio.duration)
     this.ontimeupdate(this.pipeline.audio.currentTime)
@@ -228,6 +232,7 @@ function endPlayback(context: AudioContext, pipeline: ReturnType<typeof creatPip
   pipeline.audio.ontimeupdate = null
   pipeline.audio.ondurationchange = null
   pipeline.audio.onpause = null
+  pipeline.audio.onplaying = null
   pipeline.audio.onerror = null
   pipeline.audio.onended = null
   pipeline.audio.onloadedmetadata = null

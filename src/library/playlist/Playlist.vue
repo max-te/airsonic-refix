@@ -133,10 +133,10 @@
     },
     methods: {
       playNow() {
-        return this.playerStore.playNow(this.playlist.tracks)
+        return this.playerStore.playNow(this.$api, this.playlist.tracks)
       },
       shuffleNow() {
-        return this.playerStore.shuffleNow(this.playlist.tracks)
+        return this.playerStore.shuffleNow(this.$api, this.playlist.tracks)
       },
       removeTrack(index: number) {
         this.playlist.tracks.splice(index, 1)
