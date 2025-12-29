@@ -18,7 +18,7 @@
         :to="{name: 'playlist', params: { id: item.id }}"
         class="nav-link"
       >
-        <span @dragover="onDragover" @drop="onDrop(item.id, $event)">
+        <span @dragover="onDragover" @drop="onDrop(item.id, $event)" @dragleave="onDragleave">
           <Icon icon="playlist" class="me-2" /> {{ item.name }}
         </span>
       </router-link>
@@ -52,7 +52,8 @@
     },
     methods: {
       async onDrop(playlistId: string, event: any) {
-        event.preventDefault()
+        event.preventDefault();
+        (event.currentTarget as Element).removeAttribute('drag-active')
         const trackId = event.dataTransfer.getData('application/x-track-id')
         if (trackId) {
           return this.addTracks(playlistId, [trackId])
@@ -71,8 +72,12 @@
           event.dataTransfer?.types.includes('application/x-album-id')
         ) {
           event.dataTransfer.dropEffect = 'copy'
-          event.preventDefault()
+          event.preventDefault();
+          (event.currentTarget as Element).setAttribute('drag-active', 'drag-active')
         }
+      },
+      onDragleave(event: DragEvent) {
+        (event.currentTarget as Element).removeAttribute('drag-active')
       },
     }
   })

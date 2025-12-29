@@ -88,4 +88,8 @@
   .sidebar-container .nav-link.router-link-active:hover {
     color: var(--bs-primary);
   }
+  .sidebar-container .nav-link:has([drag-active]) {
+    outline: 0.25rem solid var(--bs-primary);
+    border-radius: 0.25rem;
+  }
 </style>
