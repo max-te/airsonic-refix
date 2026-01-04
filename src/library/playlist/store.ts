@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { Playlist } from '@/shared/api'
+import type { Playlist } from '@/shared/api'
 import { orderBy } from 'lodash-es'
 
 export const usePlaylistStore = defineStore('playlist', {
@@ -24,6 +24,7 @@ export const usePlaylistStore = defineStore('playlist', {
         playlist.comment = comment
         playlist.isPublic = isPublic
         await this.api.editPlaylist(id, name, comment, isPublic)
+        playlist.updatedAt = new Date().toISOString()
       }
     },
     async addTracks(playlistId: string, trackIds: string[]) {

@@ -43,7 +43,7 @@
       </div>
     </Hero>
 
-    <TrackList v-if="playlist.tracks.length > 0" :tracks="playlist.tracks" class="mt-3">
+    <TrackList v-if="playlist.tracks.length > 0" :tracks="playlist.tracks" class="mt-3" reorderable @move="moveTrack">
       <template #context-menu="{index}">
         <hr class="dropdown-divider">
         <DropdownItem icon="x" variant="danger" :disabled="playlist.isReadOnly" @click="removeTrack(index)">
@@ -149,6 +149,14 @@
           this.$router.replace({ name: 'playlists' })
         })
       },
+      moveTrack(from: number, to: number) {
+        const newTracks = [...this.playlist.tracks]
+        newTracks.splice(to, 0, newTracks.splice(from, 1)[0])
+        const allIndexes = this.playlist.tracks.map((_: unknown, i: number) => i)
+        return this.$api.replacePlaylistTracks(this.id, allIndexes, newTracks.map((track) => track.id)).then(() => {
+          this.playlistStore.update(this.playlist)
+        })
+      }
     }
   })
 </script>

@@ -354,6 +354,15 @@ export class API {
     await this.fetch('rest/updatePlaylist', params)
   }
 
+  async replacePlaylistTracks(playlistId: string, indexesToRemove: number[], tracksToAdd: string[]) {
+    const params = {
+      playlistId,
+      songIndexToRemove: indexesToRemove,
+      songIdToAdd: tracksToAdd,
+    }
+    await this.fetch('rest/updatePlaylist', params)
+  }
+
   async getPlayQueue(): Promise<PlayQueue> {
     const response = await this.fetch('rest/getPlayQueue')
     const tracks = (response.playQueue?.entry || []).map(this.normalizeTrack, this) as Track[]
